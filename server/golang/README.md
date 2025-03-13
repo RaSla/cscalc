@@ -1,122 +1,54 @@
-# About
+# Golang
 
-Несколько примеров Клиент-Серверной реализации калькулятора
+## Build
 
-## Server
+Change dir to the `server/golang`
 
-### Python
-
-```console
-$ cd server python
-## (once) - setup venv & deps
-$ sudo apt install python3-venv
-$ python3 -m venv venv
-
-## Activate Venv
-$ source venv/bin/activate
-## (once)
-$ pip3 install -r requirements.txt
-$ python3 server.py
- * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:8080
- * Running on http://192.168.1.138:8080 (Press CTRL+C to quit)
-
-## DeActivate Venv
-$ deactivate
-```
-
-## Client
-
-### cURL
-
-```console
-$ curl 'http://127.0.0.1:8080/plus?a=10&b=5'
-a = 10, b = 5
-a + b = 15
-
-$ curl 'http://127.0.0.1:8080/minus?a=10&b=4'
-a = 10, b = 4
-a + b = 6
-
-$ curl 'http://127.0.0.1:8080/multiply?a=10&b=5'
-a = 10, b = 5
-a * b = 50
-
-$ curl 'http://127.0.0.1:8080/divide?a=10&b=2'
-a = 10, b = 2
-a / b = 5.0
-
-$ curl 'http://127.0.0.1:8080/api/plus?a=10&b=5'
-{"result": "15"}
-
-$ curl 'http://127.0.0.1:8080/api/minus?a=10&b=4'
-{"result": "6"}
-
-$ curl 'http://127.0.0.1:8080/multiply?a=10&b=5'
-{"result": "50"}
-
-$ curl 'http://127.0.0.1:8080/divide?a=10&b=2'
-{"result": "5.0"}
-```
-
-## Benchmarking
-
-### Run test
+### By host SoftWare
 
 ```shell
-## python 3.12.3
-$ siege -f urls-server.txt -i -c10 -t30s
-{	"transactions":			       68662,
-	"availability":			      100.00,
-	"elapsed_time":			       29.69,
-	"data_transferred":		        1.35,
-	"response_time":		        0.00,
-	"transaction_rate":		     2312.63,
-	"throughput":			        0.05,
-	"concurrency":			        9.94,
-	"successful_transactions":	   68662,
-	"failed_transactions":		       0,
-	"longest_transaction":		    0.02,
-	"shortest_transaction":		    0.00
-}
+$ go build -v -o ./server-go.bin.local ./src/main.go  && ls -al *.bin.local
+-rwxr-xr-x 1 rasla rasla 7703703 мар 13 22:55 app.bin.local
+-rwxrwxr-x 1 rasla rasla 7287283 мар 13 23:03 server-go.bin.local
+```
 
-$ wrk -t2 -c50 -d30s 'http://127.0.0.1:8080/plus?a=10&b=5'
-Running 30s test @ http://127.0.0.1:8080/plus?a=10&b=5
-  2 threads and 50 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency    20.44ms    1.38ms  38.23ms   85.45%
-    Req/Sec     1.23k    46.62     1.31k    79.50%
-  73252 requests in 30.01s, 13.90MB read
-Requests/sec:   2441.03
-Transfer/sec:    474.38KB
+### by Docker
 
-## openjdk 17.0.14
-$ siege -i -c10 -t30s 'http://127.0.0.1:8080/plus?a=10&b=5'
-{	"transactions":			      884136,
-	"availability":			      100.00,
-	"elapsed_time":			       29.09,
-	"data_transferred":		        7.43,
-	"response_time":		        0.00,
-	"transaction_rate":		    30393.12,
-	"throughput":			        0.26,
-	"concurrency":			        9.24,
-	"successful_transactions":	  884136,
-	"failed_transactions":		       0,
-	"longest_transaction":		    0.03,
-	"shortest_transaction":		    0.00
-}
+```shell
+$ make build
+docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
+        -e HOME="/mnt" \
+        -e GOSUMDB="off" \
+                -e GOOS=linux \
+                -e GOARCH=amd64 \
+                golang:1.23.3-alpine go build -v -o ./app.bin.local ./src/main.go \
+&& chmod u+x ./app.* && ls -al app.*
+...
+-rwxr-xr-x 1 rasla rasla 7703703 мар 13 22:55 app.bin.local
+```
 
-$ wrk -t2 -c50 -d30 'http://127.0.0.1:8080/plus?a=10&b=5'
-Running 30s test @ http://127.0.0.1:8080/plus?a=10&b=5
-  2 threads and 50 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     1.06ms  455.16us  21.33ms   84.23%
-    Req/Sec    21.96k     2.71k   27.07k    79.83%
-  1310575 requests in 30.00s, 132.49MB read
-Requests/sec:  43684.87
-Transfer/sec:      4.42MB
+## Run
 
+Execute in SHELL: `./app.bin.local` or `./server-go.bin.local`
+
+## Clean
+
+```shell
+$ make clean 
+docker container prune -f ; docker image prune -f ; docker volume prune -f
+rm -rf .cache .config ./app.bin.local
+Total reclaimed space: 0B
+Total reclaimed space: 0B
+Total reclaimed space: 0B
+```
+
+## Benchmarks
+
+```shell
 ## go version go1.23.3
+# HW: Core i5-1135G7 @ 2.40GHz / 32 Gb dual-DDR4
+# OS: Linux Mint 22.1 / 6.11.0-19-generic x86_64
+
 $ siege -f urls-server.txt -i -c10 -t30s
 {	"transactions":			     1174558,
 	"availability":			      100.00,

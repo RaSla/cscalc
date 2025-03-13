@@ -1,0 +1,8 @@
+http://127.0.0.1:8080/plus?a=10&b=5
+http://127.0.0.1:8080/minus?a=10&b=4
+http://127.0.0.1:8080/multiply?a=10&b=5
+http://127.0.0.1:8080/divide?a=10&b=2
+http://127.0.0.1:8080/api/plus?a=10&b=5
+http://127.0.0.1:8080/api/minus?a=10&b=4
+http://127.0.0.1:8080/api/multiply?a=10&b=5
+http://127.0.0.1:8080/api/divide?a=10&b=2

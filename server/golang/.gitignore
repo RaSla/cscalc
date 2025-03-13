@@ -1,0 +1,24 @@
+## IDE
+**/.idea
+**/.vscode
+*.iml
+
+## Backups and Local copies
+*~
+*.bak
+*.local
+*.swp
+*.tmp
+.env
+
+# local make
+.ash_history
+.bash_history
+.cache
+.config
+.gitconfig
+
+old/*
+.DS_Store
+*.log
+venv/
