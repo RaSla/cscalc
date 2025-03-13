@@ -34,7 +34,7 @@ build-docker:
 
 clean:
 	docker container prune -f ; docker image prune -f ; docker volume prune -f
-	rm -rf com
+	rm -rf bin
 
 list-images:
 	docker images | grep $(PROJECT_NAME)
