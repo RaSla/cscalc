@@ -4,18 +4,28 @@
 
 Change dir to the `server/golang`
 
-### By host SoftWare
+### By Host-OS SoftWare
+
+* `make build` - compile App by Host-OS software
 
 ```shell
 $ go build -v -o ./server-go.bin.local ./src/main.go  && ls -al *.bin.local
--rwxr-xr-x 1 rasla rasla 7703703 мар 13 22:55 app.bin.local
 -rwxrwxr-x 1 rasla rasla 7287283 мар 13 23:03 server-go.bin.local
+
+$ make build
+go build -v -o ./app.bin.local ./src/main.go \
+&& chmod u+x ./app.* && ls -al app.*
+-rwxrwxr-x 1 rasla rasla 7287283 мар 14 01:33 app.bin.local
 ```
 
 ### by Docker
 
+* `make builder-shell` - run shell inside BUILDER docker-container
+* `make build-by-docker` - make App by BUILDER docker-container
+* `make build-docker` - make App docker-image
+
 ```shell
-$ make build
+$ make build-by-docker
 docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
         -e HOME="/mnt" \
         -e GOSUMDB="off" \
@@ -27,11 +37,18 @@ docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
 -rwxr-xr-x 1 rasla rasla 7703703 мар 13 22:55 app.bin.local
 ```
 
-## Run
+## RUN Application
 
 Execute in SHELL: `./app.bin.local` or `./server-go.bin.local`
 
-## Clean
+* `make run` - run App in Host-OS (`make build` or `make build-by-docker` must be run first)
+* `make run-by-docker` - run App in RUNNER docker-container (`make build` must be run first)
+* `make run-docker` - run App docker-image (`make build-docker` must be run first)
+* `make list-images` - list docker-images of this App
+
+## CLEAN
+
+* `make clean` - clean docker-stuff & build-artifacts
 
 ```shell
 $ make clean 
@@ -44,12 +61,14 @@ Total reclaimed space: 0B
 
 ## Benchmarks
 
+### Run App in Host-OS
+
 ```shell
 ## go version go1.23.3
 # HW: Core i5-1135G7 @ 2.40GHz / 32 Gb dual-DDR4
 # OS: Linux Mint 22.1 / 6.11.0-19-generic x86_64
 
-$ siege -f urls-server.txt -i -c10 -t30s
+$ siege -i -c10 -t30s -f urls-server.txt
 {	"transactions":			     1174558,
 	"availability":			      100.00,
 	"elapsed_time":			       29.46,
@@ -131,4 +150,37 @@ Code 200 : 7275782 (100.0 %)
 Response Header Sizes : count 7275782 avg 117 +/- 0 min 117 max 117 sum 851266494
 Response Body/Total Sizes : count 7275782 avg 142 +/- 0 min 142 max 142 sum 1.03316104e+09
 All done 7275782 calls (plus 100 warmup) 0.412 ms avg, 242519.2 qps
+```
+
+### Run App in Docker-image
+
+```shell
+## go version go1.23.3 / runner-image: debian:12
+# HW: Core i5-1135G7 @ 2.40GHz / 32 Gb dual-DDR4
+# OS: Linux Mint 22.1 / 6.11.0-19-generic x86_64
+
+$ siege -i -c10 -t30s 'http://127.0.0.1:8080/plus?a=10&b=5'
+{	"transactions":			      631429,
+	"availability":			      100.00,
+	"elapsed_time":			       29.82,
+	"data_transferred":		       15.05,
+	"response_time":		        0.00,
+	"transaction_rate":		    21174.68,
+	"throughput":			        0.50,
+	"concurrency":			        9.33,
+	"successful_transactions":    631429,
+	"failed_transactions":	           0,
+	"longest_transaction":	        0.01,
+	"shortest_transaction":         0.00
+}
+
+$ wrk -t2 -c50 -d30 'http://127.0.0.1:8080/plus?a=10&b=5'
+Running 30s test @ http://127.0.0.1:8080/plus?a=10&b=5
+  2 threads and 50 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   322.78us  379.62us  29.11ms   94.25%
+    Req/Sec    78.93k     2.30k   84.53k    75.67%
+  4712024 requests in 30.00s, 638.11MB read
+Requests/sec: 157061.27
+Transfer/sec:     21.27MB
 ```

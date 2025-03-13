@@ -1,7 +1,7 @@
 .ONESHELL:
-.PHONY: build docker download fmt-check run
+.PHONY: builder-shell build build-docker clean download fmt-check list-images run run-docker
 
-PROJECT_NAME=00
+PROJECT_NAME=calc-server-golang
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD | sed -e 's/-/./g;s=/=.=g')
 COMMIT := $(shell git rev-parse --short HEAD)
 APP_BIN=./app.bin.local
@@ -41,27 +41,42 @@ download:
 		$(BUILDER_IMAGE) go mod download -x
 
 build:
+	$(BUILDER_CMD) \
+	&& chmod u+x ./app.* && ls -al app.*
+
+build-by-docker:
 	docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
 		-e HOME="/mnt" \
 		-e GOSUMDB="off" \
- 		-e GOOS=linux \
- 		-e GOARCH=amd64 \
- 		$(BUILDER_IMAGE) $(BUILDER_CMD) \
+		-e GOOS=linux \
+		-e GOARCH=amd64 \
+		$(BUILDER_IMAGE) $(BUILDER_CMD) \
 	&& chmod u+x ./app.* && ls -al app.*
 
-docker:
+build-docker:
 	docker build -t $(PROJECT_NAME):$(BRANCH) --progress plain \
 		--build-arg CI_JOB_TOKEN=$(CI_JOB_TOKEN) \
 		-f Dockerfile .
-	docker images | grep $(PROJECT_NAME)
-
-list-images:
 	docker images | grep $(PROJECT_NAME)
 
 clean:
 	docker container prune -f ; docker image prune -f ; docker volume prune -f
 	rm -rf .cache .config $(APP_BIN)
 
+list-images:
+	docker images | grep $(PROJECT_NAME)
+
 run:
+	ls -al $(APP_BIN) \
+	&& $(APP_BIN)
+
+run-by-docker:
 	docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
-		$(RUNNER_IMAGE) bash -c "$(APP_BIN)"
+		-e HOME="/mnt" \
+		-p 8080:8080 \
+		$(RUNNER_IMAGE) $(APP_BIN)
+
+run-docker:
+	docker run -it --rm -u `id -u`:`id -g` \
+		-p 8080:8080 \
+		$(PROJECT_NAME):$(BRANCH)
