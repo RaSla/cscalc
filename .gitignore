@@ -11,9 +11,12 @@
 *.local
 *.swp
 *.tmp
+.*sh_history
 
 ## Python App
-venv
+venv*
+bin
 build
 dist
+target
 __pycache__
