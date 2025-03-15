@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
+	"time"
 )
 
 var res int
@@ -179,8 +181,26 @@ func mulApiHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(jsonResponse))
 }
 
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	// Получаем hostname
+	hostname, err := os.Hostname()
+	if err != nil {
+		http.Error(w, "Failed to get hostname", http.StatusInternalServerError)
+		return
+	}
+
+	// Получаем текущее время в UTC
+	currentTime := time.Now().UTC().Format(time.RFC3339)
+
+	// Формируем ответ
+	response := fmt.Sprintf("Hello World from Golang!\n DateTime (UTC): \"%s\"\n My hostname is \"%s\"\n", currentTime, hostname)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(response))
+}
+
 func main() {
 	// Регистрируем обработчики для URL
+	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/api/divide", divApiHandler)
 	http.HandleFunc("/api/plus", addApiHandler)
 	http.HandleFunc("/api/minus", subApiHandler)
