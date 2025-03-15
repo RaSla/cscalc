@@ -1,7 +1,9 @@
-use warp::Filter;
-use serde::{Serialize, Deserialize};
+use chrono::Utc;
+use gethostname::gethostname;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::Infallible;
+use warp::Filter;
 
 #[derive(Serialize, Deserialize)]
 struct CalculationResponse {
@@ -12,8 +14,6 @@ struct CalculationResponse {
 struct ErrorResponse {
     error: String,
 }
-
-
 
 async fn add(a: i32, b: i32) -> Result<Box<dyn warp::Reply>, Infallible> {
     let result = a + b;
@@ -50,8 +50,13 @@ async fn mul_text(a: i32, b: i32) -> Result<Box<dyn warp::Reply>, Infallible> {
 
 async fn div(a: i32, b: i32) -> Result<Box<dyn warp::Reply>, Infallible> {
     if b == 0 {
-        let error = ErrorResponse { error: "Can't divide by Zero!".to_string() };
-        return Ok(Box::new(warp::reply::with_status(warp::reply::json(&error), warp::http::StatusCode::BAD_REQUEST)));
+        let error = ErrorResponse {
+            error: "Can't divide by Zero!".to_string(),
+        };
+        return Ok(Box::new(warp::reply::with_status(
+            warp::reply::json(&error),
+            warp::http::StatusCode::BAD_REQUEST,
+        )));
     }
     let result = a / b;
     Ok(Box::new(warp::reply::json(&CalculationResponse { result })))
@@ -76,8 +81,18 @@ async fn div_text(a: i32, b: i32) -> Result<Box<dyn warp::Reply>, Infallible> {
 }
 
 async fn root_handler() -> Result<Box<dyn warp::Reply>, Infallible> {
+    let current_time = Utc::now().to_rfc3339();
+    let hostname = gethostname()
+        .into_string()
+        .unwrap_or_else(|_| "unknown".to_string());
+
+    let response = format!(
+        "Hello World from Rust & Warp!\n DateTime (UTC): \"{}\"\n My hostname is \"{}\"\n",
+        current_time, hostname
+    );
+
     Ok(Box::new(warp::reply::with_header(
-        "Ok",
+        warp::reply::html(response),
         "Content-Type",
         "text/plain",
     )))
@@ -172,7 +187,5 @@ async fn main() {
         .or(div_route)
         .or(div_text_route);
 
-    warp::serve(routes)
-        .run(([127, 0, 0, 1], 8080))
-        .await;
+    warp::serve(routes).run(([0, 0, 0, 0], port)).await;
 }

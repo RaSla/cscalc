@@ -14,30 +14,16 @@ RUNNER_IMAGE=debian:12
 builder-shell:
 	docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
 		-e HOME="/mnt" \
-		-e GOSUMDB="off" \
 		$(BUILDER_IMAGE) bash
 
-lint:
-	docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
-		-e HOME="/mnt" \
-		-e GOSUMDB="off" \
-		$(DP_GO_LINT_IMAGE) golangci-lint run -v
-
 fmt-check:
-	docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
-		-e HOME="/mnt" \
-		$(BUILDER_IMAGE) gofmt -d ./
+	rustfmt --check --edition 2021 src/main.rs
 
 fmt:
-	docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
-		-e HOME="/mnt" \
-		$(BUILDER_IMAGE) gofmt -w ./
+	rustfmt --edition 2021 src/main.rs
 
 download:
-	docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
-		-e HOME="/mnt" \
-		-e GOSUMDB="off" \
-		$(BUILDER_IMAGE) go mod download -x
+	cargo check
 
 build:
 	time $(BUILDER_CMD) \
