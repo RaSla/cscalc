@@ -15,7 +15,7 @@ host = socket.gethostname()
 @app.route('/')
 def hi():
     dt_iso = datetime.datetime.utcnow().replace(microsecond=0, tzinfo=datetime.timezone.utc).isoformat()
-    txt = 'Hello World from Python & Flask!\n DateTime (UTC): "%s"\n My hostname is "%s"\n\n/py3/hits - try Redis hits-counter\n' % (dt_iso, host)
+    txt = 'Hello World from Python & Flask!\n DateTime (UTC): "%s"\n My hostname is "%s"\n' % (dt_iso, host)
     return flask.Response(txt, mimetype='text/plain')
 
 @app.route('/plus')
