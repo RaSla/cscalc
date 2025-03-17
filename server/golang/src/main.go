@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 )
 
-var res int
+const APP_VERSION = "0.2.0"
+
 var port = 8080
 
 func calcAdd(a, b int) int {
@@ -37,8 +42,6 @@ func calcDivide(a, b int) (int, bool, string) {
 
 // Функция для преобразования параметров HTTP-запроса
 func parseParams(r *http.Request, w http.ResponseWriter) (bool, int, int) {
-	// Получаем параметры a и b из URL
-	// и Преобразуем строки в числа
 	a, err := strconv.Atoi(r.URL.Query().Get("a"))
 	if err != nil {
 		http.Error(w, "Invalid parameter 'a'", http.StatusBadRequest)
@@ -47,11 +50,55 @@ func parseParams(r *http.Request, w http.ResponseWriter) (bool, int, int) {
 
 	b, err := strconv.Atoi(r.URL.Query().Get("b"))
 	if err != nil {
-		http.Error(w, "Invalid parameter 'a'", http.StatusBadRequest)
+		http.Error(w, "Invalid parameter 'b'", http.StatusBadRequest)
 		return false, 0, 0
 	}
 
 	return true, a, b
+}
+
+// Структура для хранения результата и времени выполнения
+type TaskResult struct {
+	Result  int
+	Elapsed time.Duration
+}
+
+// Функция для имитации долгого запроса
+func longRunningTask(a int, resultChan chan<- TaskResult) {
+	startTime := time.Now()
+	var i_counter = 0
+	var l_counter = 0
+	for i_loop1 := 0; i_loop1 < a; i_loop1++ {
+		// fmt.Printf("\nloop1: %#v", i_loop1)
+		for i_loop2 := 0; i_loop2 < 32000; i_loop2++ {
+			for i_loop3 := 0; i_loop3 < 32000; i_loop3++ {
+				i_counter++
+				l_counter++
+				if i_counter > 50 {
+					i_counter = 0
+				}
+			}
+		}
+	}
+	elapsedTime := time.Since(startTime) // Вычисляем время выполнения
+	resultChan <- TaskResult{Result: l_counter, Elapsed: elapsedTime}
+}
+
+func longHandler(w http.ResponseWriter, r *http.Request) {
+	a, err := strconv.Atoi(r.URL.Query().Get("a"))
+	if err != nil {
+		http.Error(w, "Invalid parameter 'a'", http.StatusBadRequest)
+		return
+		// a = 5
+	}
+
+	resultChan := make(chan TaskResult)
+	go longRunningTask(a, resultChan)
+
+	res := <-resultChan
+
+	response := fmt.Sprintf("a = %d , longRunningTask(a) = %d\nelapsed = %v\n", a, res.Result, res.Elapsed)
+	w.Write([]byte(response))
 }
 
 func addHandler(w http.ResponseWriter, r *http.Request) {
@@ -198,9 +245,16 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(response))
 }
 
-func main() {
+func startServer() *http.Server {
+	// Запускаем сервер на порту 8080
+	log.Printf("Server is starting on port %d ...", port)
+	server := &http.Server{
+		Addr: ":" + strconv.Itoa(port),
+	}
+
 	// Регистрируем обработчики для URL
 	http.HandleFunc("/", rootHandler)
+	http.HandleFunc("/long", longHandler)
 	http.HandleFunc("/api/divide", divApiHandler)
 	http.HandleFunc("/api/plus", addApiHandler)
 	http.HandleFunc("/api/minus", subApiHandler)
@@ -210,10 +264,37 @@ func main() {
 	http.HandleFunc("/multiply", mulHandler)
 	http.HandleFunc("/plus", addHandler)
 
-	// Запускаем сервер на порту 8080
-	var sPort = fmt.Sprintf("%d", port)
-	fmt.Printf("Server is running on port %d...\n", port)
-	if err := http.ListenAndServe(":"+sPort, nil); err != nil {
-		fmt.Printf("Error starting server: %s\n", err)
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Error starting server: %s\n", err)
+		}
+	}()
+
+	return server
+}
+
+func main() {
+	// runtime.GOMAXPROCS(4)  // equal "export GOMAXPROCS=4; ./app.bin.local"
+	// log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	log.Printf("Calc-Server (v%s, golang)", APP_VERSION)
+	server := startServer()
+
+	// Канал для получения сигналов ОС
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Ожидаем сигнал
+	sig := <-sigChan
+	log.Printf("Received signal: %v. Shutting down gracefully...\n", sig)
+
+	// Создаем контекст с таймаутом 3 секунды
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Пытаемся завершить сервер
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Server shutdown error: %v\n", err)
+	} else {
+		log.Println("Server stopped gracefully")
 	}
 }
