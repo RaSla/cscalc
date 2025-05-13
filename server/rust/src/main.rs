@@ -106,8 +106,7 @@ async fn main() {
     println!("Server is running on port {}...", port);
 
     // Root-URL ("/")
-    let root_route = warp::path::end()
-        .and_then(root_handler);
+    let root_route = warp::path::end().and_then(root_handler);
 
     // Plus
     let add_text_route = warp::path!("plus")
