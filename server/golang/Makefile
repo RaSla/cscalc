@@ -11,6 +11,7 @@ BUILDER_CMD=go build -v -o $(APP_BIN) ./src/main.go
 DOCKER_TAG=latest
 DP_GO_LINT_IMAGE=docker/golangci-lint:1.58.0-go1.22.3
 RUNNER_IMAGE=debian:12
+TEST_CMD=go test -v ./src/... && go test -cover ./src/...
 
 builder-shell:
 	docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
@@ -80,3 +81,14 @@ run-docker:
 	docker run -it --rm -u `id -u`:`id -g` \
 		-p 8080:8080 \
 		$(PROJECT_NAME):$(BRANCH)
+
+test:
+	$(TEST_CMD)
+
+test-by-docker:
+	docker run -it --rm -u `id -u`:`id -g` -v `pwd`:/mnt -w /mnt \
+		-e HOME="/mnt" \
+		-e GOSUMDB="off" \
+		-e GOOS=linux \
+		-e GOARCH=amd64 \
+		$(BUILDER_IMAGE) $(TEST_CMD)

@@ -21,4 +21,4 @@
 old/*
 .DS_Store
 *.log
-venv/
+coverage.out
